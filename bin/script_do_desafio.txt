@@ -1,0 +1,72 @@
+
+// CRIAR BASE DE DADOS E SUAS TABELAS
+create database locations_brasil;
+use locations_brasil;
+create table estado(
+	id int not null primary key auto_increment,
+    uf varchar(2),
+    nome varchar(255)
+);
+
+create table cidade(
+	id int not null primary key auto_increment,
+    id_uf int,
+    nome varchar(255),
+		foreign key (id_uf)
+        references estado(id)
+);
+
+// APIs: 
+//Buscar Estados -> https://servicodados.ibge.gov.br/api/v1/localidades/estados/
+----
+Buscar Cidades -> https://servicodados.ibge.gov.br/api/v1/localidades/estados/11/distritos/
+
+import 'package:desafio_final1_dart/repositories/api_ibge/api_distritos/cidades_repository_impl.dart';
+import 'package:desafio_final1_dart/repositories/api_ibge/api_estados/estados_repository_impl.dart';
+import 'package:desafio_final1_dart/repositories/data_baseMySQL/data_base_repository_impl.dart';
+
+Future<void> main()async {
+  final connect = DataBaseRepositoryImpl();
+  final estadosRepository = EstadosRepositoryImpl();
+  final cidadesRepository = CidadesReporitoryImpl();
+
+  var mysqlConnection = await connect.openConnection();
+
+  // print(mysqlConnection.toString());
+
+  var listEstado = await estadosRepository.getEstados();
+  print('===============ESTADOS===================');
+  print(listEstado);
+
+  for (var estado in listEstado) {
+    await mysqlConnection.query(
+      'insert into estado (id, nome, uf) values(?,?,?)',
+      [
+        estado.id,
+        estado.nome,
+        estado.sigla,
+      ]
+    );
+
+    var listCidades = await cidadesRepository.getCidades(estado.id);
+    for (var cidade in listCidades) {
+      await mysqlConnection.query(
+        'insert into cidade (id, id_uf, nome) values(?,?,?)',
+        [
+          cidade.id,
+          cidade.idEstado,
+          cidade.nome,
+        ]
+      );
+    }
+    
+  }
+  
+
+ 
+  //print('===============CIDADES===================');
+  //print(listCidades);
+  //print('*********************************************');
+  
+
+}
